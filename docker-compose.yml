@@ -1,0 +1,55 @@
+services:
+  node-db:
+    image: mongo:7
+    container_name: phonebook-node-db
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: phonebook
+      MONGO_INITDB_ROOT_PASSWORD: RoKo@2024
+      MONGO_INITDB_DATABASE: phonebook_node
+
+    ports:
+      - "27019:27017"
+
+    volumes:
+      - mongo_node_data:/data/db
+
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet -u phonebook -p 'RoKo@2024' --eval 'db.adminCommand(\"ping\")'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+
+  nodejs-backend:
+    build:
+      context: .
+
+    container_name: phonebook-nodejs
+
+    environment:
+      MONGODB_URI: mongodb://phonebook:RoKo%402024@node-db:27017/phonebook_node?authSource=admin
+
+    depends_on:
+      node-db:
+        condition: service_healthy
+
+    restart: on-failure
+
+
+  node-frontend:
+    build:
+      context: ./frontend
+
+    container_name: phonebook-node-frontend
+
+    ports:
+      - "8080:80"
+
+    depends_on:
+      - nodejs-backend
+
+
+volumes:
+  mongo_node_data:
